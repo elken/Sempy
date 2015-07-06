@@ -9,11 +9,8 @@ install:
 - sudo apt-get install -y ninja-build
 - sudo apt-get install -y cmake=3.2.3-5ppa5~precise1 cmake-data=3.2.3-5ppa5~precise1
 - sudo apt-get install -y libgtkmm-3.0-dev
-- sudo apt-get install -y libcurlpp-dev
+- sudo apt-get install -y libcurlpp
 before_script:
 - cmake . -G "Ninja"
 script:
 - ninja
-os:
-- mac
-- osx
