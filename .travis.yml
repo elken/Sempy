@@ -14,5 +14,3 @@ before_script:
 - cmake . -G "Ninja"
 script:
 - ninja
-os:
-- linux
