@@ -14,8 +14,7 @@ install:
 - sudo apt-get install -y libgtkmm-3.0-dev
 - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 90
 - cd curlpp
-- sudo cmake . -G "Ninja"
-- sudo ninja
+- sudo ./configure --prefix=/usr
 - sudo make install
 - cd ..
 before_script:
