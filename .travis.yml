@@ -6,6 +6,7 @@ before_install:
 - sudo add-apt-repository -y ppa:sschuberth/cmake-here
 - sudo add-apt-repository -y ppa:boost-latest/ppa
 - sudo git clone https://github.com/jpbarrette/curlpp
+- sudo wget http://ftp.gnome.org/pub/gnome/sources/libnotifymm/0.7/libnotifymm-0.7.0.tar.xz
 - sudo apt-get update -qq
 install:
 - sudo apt-get install -y ninja-build
@@ -16,6 +17,11 @@ install:
 - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 90
 - cd curlpp
 - sudo ./autogen.sh --prefix=/usr
+- sudo ./configure --prefix=/usr
+- sudo make install
+- cd ..
+- sudo tar xf libnotifymm-0.7.0.tar.xz
+- cd libnotifymm-0.7.0
 - sudo ./configure --prefix=/usr
 - sudo make install
 - cd ..
