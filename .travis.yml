@@ -18,12 +18,12 @@ install:
 - cd curlpp
 - sudo ./autogen.sh --prefix=/usr
 - sudo ./configure --prefix=/usr
-- sudo make install
+- sudo make -j`expr $(nproc) + 1` install
 - cd ..
 - sudo tar xf libnotifymm-0.7.0.tar.xz
 - cd libnotifymm-0.7.0
 - sudo ./configure --prefix=/usr
-- sudo make install
+- sudo make -j`expr $(nproc) + 1` install
 - cd ..
 before_script:
 - cmake . -G "Ninja"
