@@ -1,6 +1,7 @@
+import webbrowser
+
 from PyQt4.QtGui import *
 from PyQt4.QtCore import QSettings
-import webbrowser
 
 
 class SempyWizard(QWizard):
@@ -29,6 +30,7 @@ class SempyWizard(QWizard):
         token_label.setBuddy(token_input)
         token_page.registerField("tokenInput*", token_input)
         url_button = QPushButton("Get your token")
+        # noinspection PyUnresolvedReferences
         url_button.clicked.connect(lambda s: webbrowser.open("https://semaphoreci.com/"))
 
         layout = QGridLayout()

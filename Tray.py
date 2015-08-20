@@ -1,8 +1,5 @@
-import logging
-
 # PyQt
 from PyQt4.QtGui import *
-from PyQt4.QtCore import *
 
 # Sempy
 from Request import *
