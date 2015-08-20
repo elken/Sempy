@@ -1,44 +1,30 @@
-TOKEN = "RPncz4FMpxviSzesVeDo"
-API_URL = 'https://semaphoreapp.com/api/v1/projects?auth_token=' + TOKEN
-
 import json
 
 import requests
 
 
-class TeaTrayRequest:
-    def __init__(self):
-        self._info = {}
+def get_json(token):
+    r = requests.get('https://semaphoreapp.com/api/v1/projects?auth_token=' + token)
+    if r.status_code is 200:
+        return json.dumps(r.json())
 
-        self.json_data = self.get_json()
-        self.data = json.loads(self.json_data)
-        for server in self.data:
-            values = {}
-            for s in ("hash_id", "html_url", "owner", "name"):
-                values[s] = (server[s])
 
-            for branch in server['branches']:
-                values['branch_name'] = branch['branch_name']
+def json_to_dict(data):
+    info = {}
+    for server in data:
+        values = {}
+        for s in ("hash_id", "html_url", "owner", "name"):
+            values[s] = (server[s])
 
-                if branch['result'] is "stopped":
-                    values['result'] = "failed"
-                else:
-                    values['result'] = branch['result']
+        for branch in server['branches']:
+            values['branch_name'] = branch['branch_name']
 
-            key = str(server['owner'] + "/" + server['name'])
-            self._info[key] = values
+            if branch['result'] is "stopped":
+                values['result'] = "failed"
+            else:
+                values['result'] = branch['result']
 
-        # print(json.dumps(self.data, sort_keys=True, indent=4))
+        key = str(server['owner'] + "/" + server['name'])
+        info[key] = values
 
-    @staticmethod
-    def get_json():
-        r = requests.get(API_URL)
-        if r.status_code is 200:
-            return json.dumps(r.json())
-        else:
-            print("Error getting JSON from " + API_URL + ". Check network settings. (" + str(r.status_code) + ")")
-
-    @property
-    def info(self):
-        return self._info
-
+    return info
