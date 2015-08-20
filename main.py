@@ -16,7 +16,7 @@ if __name__ == '__main__':
         wizard.show()
 
     w = QWidget()
-    tray_icon = Sempy(parent=w, settings=settings)
+    tray_icon = Sempy(w)
 
     tray_icon.show()
     app.exec_()
