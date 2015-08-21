@@ -4,8 +4,11 @@ from PyQt4.QtCore import QSettings
 
 # Sempy
 from Request import *
-from IntervalTimer import *
+from StoppableThread import *
 from Logger import *
+
+# Python STL
+import sys
 
 
 class Sempy(QSystemTrayIcon):
@@ -13,6 +16,7 @@ class Sempy(QSystemTrayIcon):
         self.settings = QSettings(QSettings.IniFormat, QSettings.UserScope, "Sempy",  "config")
 
         self.token = self.settings.value("token")
+        self.interval = self.settings.value("interval")
         self.enabled_repos = []
         self.update_enabled_repos()
         self.c = 0
@@ -20,10 +24,9 @@ class Sempy(QSystemTrayIcon):
 
         QSystemTrayIcon.__init__(self, QIcon("res/semaphore.png"), parent)
         self.menu = QMenu(parent)
-        if self.token is not None:
-            logging.debug("Starting RequestThread")
-            interval = IntervalTimer(5, self.update_menu)
-            interval.start()
+        logging.debug("Starting RequestThread")
+        self.req_thread = StoppableThread(self.interval, self.update_menu)
+        self.req_thread.start()
 
     def update_menu(self):
         self.update_enabled_repos()
@@ -38,7 +41,8 @@ class Sempy(QSystemTrayIcon):
                 self.menu.addAction(QIcon("res/" + i['result'] + ".svg"), i['owner'] + "/" + i['name'])
 
         self.menu.addSeparator()
-        self.menu.addAction("Exit", qApp.quit)
+        exit_action = self.menu.addAction("Exit")
+        exit_action.triggered.connect(self.exit)
         self.setContextMenu(self.menu)
 
     def update_enabled_repos(self):
@@ -46,3 +50,7 @@ class Sempy(QSystemTrayIcon):
         for i in self.settings.allKeys():
             if self.settings.value(i) == "True":
                 self.enabled_repos.append(i)
+
+    def exit(self):
+        self.req_thread.stop()
+        sys.exit(0)

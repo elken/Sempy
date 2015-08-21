@@ -10,6 +10,7 @@ class SempyWizard(QWizard):
     def __init__(self, parent=None):
         super(QWizard, self).__init__(parent)
         self.settings = QSettings(QSettings.IniFormat, QSettings.UserScope, "Sempy",  "config")
+        self.settings.setValue("interval", 5)
         self.info = {}
         self.token = None
         self.Intro_Page = 1
