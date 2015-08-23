@@ -111,10 +111,9 @@ class FinalPage(QWizardPage):
                          "Config is located in: " + SempyWizard.settings.fileName())
 
     def initializePage(self):
-        SempyWizard.settings.setValue("interval", 5)
         for i in FilterPage.box_group.buttons():
             SempyWizard.settings.beginGroup("Repositories")
-            if i.isChecked() != 0:
+            if i.isChecked() is True:
                 SempyWizard.settings.setValue(i.text(), "True")
             else:
                 SempyWizard.settings.setValue(i.text(), "False")

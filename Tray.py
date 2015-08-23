@@ -20,6 +20,7 @@ from plyer import notification
 class Sempy(QSystemTrayIcon):
     def __init__(self, parent=None):
         self.settings = QSettings(QSettings.IniFormat, QSettings.UserScope, "Sempy",  "config")
+        QSystemTrayIcon.__init__(self, QIcon("res/semaphore.png"), parent)
 
         # kwargs = {'title': "Sempy",
         #           'message': "body",
@@ -27,27 +28,25 @@ class Sempy(QSystemTrayIcon):
         #           'app_icon':  join(dirname(realpath(__file__)), "res/semaphore.ico")}
         #
         # notification.notify(**kwargs)
-        self.info = {}
-        self.token = str(self.settings.value("token"))
-        self.interval = int(self.settings.value("interval"))
-        self.enabled_repos = []
-        self.update_enabled_repos()
-        self.req_counter = 0
-        self.logger = Logger(self.settings)
+        if os.path.exists(self.settings.fileName()) and self.settings.value("token"):
+            self.info = {}
+            self.token = str(self.settings.value("token"))
+            self.interval = int(self.settings.value("interval"))
+            self.enabled_repos = []
+            self.update_enabled_repos()
+            self.req_counter = 0
+            self.logger = Logger(self.settings)
 
-        QSystemTrayIcon.__init__(self, QIcon("res/semaphore.png"), parent)
-        self.menu = QMenu(parent)
-        logging.debug("Starting RequestThread")
-        self.req_thread = StoppableThread(self.interval, self.update_menu)
-        self.req_thread.start()
+            self.menu = QMenu(parent)
+            logging.debug("Starting RequestThread")
+            self.req_thread = StoppableThread(self.interval, self.update_menu)
+            self.req_thread.start()
 
     def update_menu(self):
-        self.update_enabled_repos()
         self.req_counter += 1
         logging.debug("Request #%d" % self.req_counter)
-        if self.token is not None:
-            self.info = json_to_dict(json.loads(get_json(self.token)))
         self.menu.clear()
+        self.update_enabled_repos()
         for i in self.info.values():
             if self.enabled_repos.__contains__(str(i['owner'] + "/" + i['name'])):
                 self.menu.addAction(QIcon("res/" + i['result'] + ".svg"), i['owner'] + "/" + i['name'])
@@ -63,7 +62,7 @@ class Sempy(QSystemTrayIcon):
         self.settings.beginGroup("Repositories")
         for i in self.settings.allKeys():
             if i in self.info:
-                if bool(self.settings.value(i).capitalize()) is True:
+                if self.settings.value(i).capitalize() == "True":
                     self.enabled_repos.append(i)
             else:
                 self.settings.remove(i)
