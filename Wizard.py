@@ -7,39 +7,43 @@ from Request import *
 
 
 class SempyWizard(QWizard):
+    info = {}
+    token = None
+    intro_page = 1
+    token_page = 2
+    validation_page = 3
+    filter_page = 4
+    final_page = 5
+    settings = QSettings(QSettings.IniFormat, QSettings.UserScope, "Sempy", "config")
+
+    def __init__(self):
+        super(SempyWizard, self).__init__()
+        self.setPage(self.intro_page, IntroPage())
+        self.setPage(self.token_page, TokenPage())
+        self.setPage(self.validation_page, ValidationPage())
+        self.setPage(self.filter_page, FilterPage())
+        self.setPage(self.final_page, FinalPage())
+
+
+class IntroPage(QWizardPage):
     def __init__(self, parent=None):
-        super(QWizard, self).__init__(parent)
-        self.settings = QSettings(QSettings.IniFormat, QSettings.UserScope, "Sempy",  "config")
-        self.settings.setValue("interval", 5)
-        self.info = {}
-        self.token = None
-        self.Intro_Page = 1
-        self.Token_Page = 2
-        self.Validation_Page = 3
-        self.Filter_Page = 4
-        self.Final_Page = 5
-        self.setPage(self.Intro_Page, self.create_intro_page())
-        self.setPage(self.Token_Page, self.create_token_page())
-        self.setPage(self.Validation_Page, self.create_validation_page())
-        self.setPage(self.Final_Page, self.create_final_page())
+        super(IntroPage, self).__init__(parent)
+        self.setTitle("Sempy Wizard")
+        self.setSubTitle("This wizard will go through some steps to setup Sempy")
 
-    @staticmethod
-    def create_intro_page():
-        intro_page = QWizardPage()
-        intro_page.setTitle("Sempy Wizard")
-        intro_page.setSubTitle("This wizard will go through some steps to setup Sempy")
-        return intro_page
 
-    def create_token_page(self):
-        token_page = QWizardPage()
-        token_page.setTitle("Authentication token entry")
-        token_page.setSubTitle("Input your Semaphore token. If you don't yet have one, click the button below. "
-                               "\nThen go to the settings tab of the project you wish to monitor and click on API.")
+class TokenPage(QWizardPage):
+    def __init__(self, parent=None):
+        super(TokenPage, self).__init__(parent)
+
+        self.setTitle("Authentication token entry")
+        self.setSubTitle("Input your Semaphore token. If you don't yet have one, click the button below. "
+                         "\nThen go to the settings tab of the project you wish to monitor and click on API.")
 
         token_label = QLabel("Your authentication token:")
-        token_input = QLineEdit()
-        token_label.setBuddy(token_input)
-        token_page.registerField("tokenInput*", token_input)
+        self.token_input = QLineEdit()
+        token_label.setBuddy(self.token_input)
+        self.registerField("tokenInput*", self.token_input)
         url_button = QPushButton("Get your token")
         # Needed to stop Pycharm complaining
         # noinspection PyUnresolvedReferences
@@ -47,67 +51,71 @@ class SempyWizard(QWizard):
 
         layout = QGridLayout()
         layout.addWidget(token_label, 0, 0)
-        layout.addWidget(token_input, 0, 1)
+        layout.addWidget(self.token_input, 0, 1)
         layout.addWidget(url_button, 1, 0)
-        token_page.setLayout(layout)
-        self.button(QWizard.NextButton).clicked.connect(lambda s: self.update_token(token_input))
-        return token_page
+        self.setLayout(layout)
 
-    def create_validation_page(self):
-        validation_page = QWizardPage()
-        validation_page.setTitle("Auth success")
-        validation_page.setSubTitle("Proceed to the next screen to toggle repositories.")
-        self.button(QWizard.NextButton).clicked.connect(lambda s: self.filter_create())
-        return validation_page
 
-    def create_filter_page(self):
-        filter_page = QWizardPage()
-        filter_page.setTitle("Choose which repositories to watch")
-        filter_page.setSubTitle("Click the checkbox next to the repo you would like to watch. \n"
-                                "This can be adjusted later in the configuration file.")
+class ValidationPage(QWizardPage):
+    def __init__(self, parent=None):
+        super(ValidationPage, self).__init__(parent)
+
+        self.setTitle("Auth success")
+        self.setSubTitle("Proceed to the next screen to toggle repositories.")
+
+    def initializePage(self):
+        token = self.wizard().page(SempyWizard.token_page).token_input.text()
+        if token is not None:
+            try:
+                SempyWizard.info = json_to_dict(json.loads(get_json(token)))
+            except TypeError:
+                ret = QMessageBox.critical(QMessageBox(), "Auth failed", "Click ok to restart the wizard and try again")
+                if ret:
+                    self.wizard().back()
+            else:
+                SempyWizard.settings.setValue("token", token)
+
+
+class FilterPage(QWizardPage):
+    box_group = QButtonGroup()
+
+    def __init__(self, parent=None):
+        super(FilterPage, self).__init__(parent)
+        self.setTitle("Choose which repositories to watch")
+        self.setSubTitle("Click the checkbox next to the repo you would like to watch. \n"
+                         "This can be adjusted later in the configuration file.")
+
+    def initializePage(self):
+        self.box_group.setExclusive(False)
         layout = QGridLayout()
         row = 0
-        box_group = QButtonGroup()
-        for key, val in self.info.items():
+
+        for key, val in SempyWizard.info.items():
             checkbox = QCheckBox(key)
             layout.addWidget(checkbox, row, 0)
-            box_group.addButton(checkbox)
+            self.box_group.addButton(checkbox)
             label = QLabel()
             icon = QIcon("res/" + val['result'] + ".svg")
             label.setPixmap(icon.pixmap(8))
             layout.addWidget(label, row, 1)
             row += 1
-        filter_page.setLayout(layout)
-        self.button(QWizard.NextButton).clicked.connect(lambda s: self.get_checked(box_group))
-        return filter_page
+        self.setLayout(layout)
 
-    def create_final_page(self):
-        final_page = QWizardPage()
-        final_page.setTitle("Wizard complete")
-        final_page.setSubTitle("Daemon will start running once you click finish. \n"
-                               "Config is located in: " + self.settings.fileName())
-        return final_page
 
-    def get_checked(self, box_group):
-        if self.currentId() is self.Final_Page:
-            for i in box_group.buttons():
-                self.settings.beginGroup("Repositories")
-                if i.isChecked() != 0:
-                    self.settings.setValue(i.text(), "True")
-                else:
-                    self.settings.setValue(i.text(), "False")
-                self.settings.endGroup()
+class FinalPage(QWizardPage):
+    def __init__(self, parent=None):
+        super(FinalPage, self).__init__(parent)
+        SempyWizard.settings.setValue("interval", 5)
+        self.setTitle("Wizard complete")
+        self.setSubTitle("Daemon will start running once you click finish. \n"
+                         "Config is located in: " + SempyWizard.settings.fileName())
 
-    def update_token(self, token_input):
-        if self.currentId() is self.Validation_Page:
-            self.settings.setValue("token", str(token_input.text()))
-            self.token = str(token_input.text())
-            self.update_info()
-
-    def update_info(self):
-        if self.token is not None:
-            self.info = json_to_dict(json.loads(get_json(self.token)))
-
-    def filter_create(self):
-        if self.currentId() is self.Validation_Page:
-            self.setPage(self.Filter_Page, self.create_filter_page())
+    def initializePage(self):
+        SempyWizard.settings.setValue("interval", 5)
+        for i in FilterPage.box_group.buttons():
+            SempyWizard.settings.beginGroup("Repositories")
+            if i.isChecked() != 0:
+                SempyWizard.settings.setValue(i.text(), "True")
+            else:
+                SempyWizard.settings.setValue(i.text(), "False")
+            SempyWizard.settings.endGroup()

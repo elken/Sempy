@@ -11,12 +11,13 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     settings = QSettings(QSettings.IniFormat, QSettings.UserScope, "Sempy",  "config")
 
-    if not os.path.exists(settings.fileName()):
-        wizard = SempyWizard()
-        wizard.show()
+    # if not os.path.exists(settings.fileName()):
+    wizard = SempyWizard()
+    wizard.show()
 
-    w = QWidget()
-    tray_icon = Sempy(w)
+    # if os.path.exists(settings.fileName()):
+    #     w = QWidget()
+    #     tray_icon = Sempy(w)
+    #     tray_icon.show()
 
-    tray_icon.show()
     sys.exit(app.exec_())
