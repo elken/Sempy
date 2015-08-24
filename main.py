@@ -5,7 +5,7 @@ from multiprocessing import Process
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
-from Tray import Sempy
+from Sempy import Sempy
 from Wizard import SempyWizard
 
 
@@ -19,6 +19,7 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     settings = QSettings(QSettings.IniFormat, QSettings.UserScope, "Sempy",  "config")
 
+    print(settings.fileName())
     if not os.path.exists(settings.fileName()):
         t = Process(target=run_wizard)
         t.start()
