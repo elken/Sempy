@@ -6,6 +6,7 @@ from PyQt4.QtCore import QSettings, pyqtSlot, SIGNAL
 from Request import *
 from Worker import *
 from Logger import *
+from Window import *
 
 # Python STL
 import sys
@@ -66,8 +67,11 @@ class Sempy(QSystemTrayIcon):
                 self.menu.addAction(QIcon(file_str), i['owner'] + "/" + i['name'])
 
         self.menu.addSeparator()
+        config = SempyConfig()
         exit_action = self.menu.addAction("Exit")
         exit_action.triggered.connect(self.exit)
+        config_action = self.menu.addAction("Config")
+        config_action.triggered.connect(config.show())
         self.setContextMenu(self.menu)
 
     def update_enabled_repos(self):

@@ -3,8 +3,9 @@ import json
 import requests
 
 
-def get_json(token):
-    r = requests.get('https://semaphoreapp.com/api/v1/projects?auth_token=' + token)
+def get_json(token, route=""):
+    r = requests.get('https://semaphoreapp.com/api/v1/projects' +
+                     route + '?auth_token=' + token)
     if r.status_code is 200:
         return json.dumps(r.json())
 
