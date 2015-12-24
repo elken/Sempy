@@ -1,4 +1,5 @@
 import webbrowser
+import sys
 
 from PyQt4.QtGui import *
 from PyQt4.QtCore import QSettings
@@ -24,6 +25,11 @@ class SempyWizard(QWizard):
         self.setPage(self.filter_page, FilterPage())
         self.setPage(self.final_page, FinalPage())
 
+    def closeEvent(self, event):
+        print("Closing")
+        sys.exit(0)
+        event.accept()
+
 
 class IntroPage(QWizardPage):
     def __init__(self, parent=None):
@@ -38,7 +44,7 @@ class TokenPage(QWizardPage):
 
         self.setTitle("Authentication token entry")
         self.setSubTitle("Input your Semaphore token. If you don't yet have one, click the button below. "
-                         "\nThen go to the settings tab of the project you wish to monitor and click on API.")
+                         "\nThen go to the bottom of the page and click copy near \"YOUR AUTHENTICATION TOKEN\".")
 
         token_label = QLabel("Your authentication token:")
         self.token_input = QLineEdit()
@@ -47,7 +53,7 @@ class TokenPage(QWizardPage):
         url_button = QPushButton("Get your token")
         # Needed to stop Pycharm complaining
         # noinspection PyUnresolvedReferences
-        url_button.clicked.connect(lambda s: webbrowser.open("https://semaphoreci.com/"))
+        url_button.clicked.connect(lambda s: webbrowser.open("https://semaphoreci.com/users/edit/"))
 
         layout = QGridLayout()
         layout.addWidget(token_label, 0, 0)

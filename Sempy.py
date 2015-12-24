@@ -1,14 +1,15 @@
 # PyQt
 from PyQt4.QtGui import *
-from PyQt4.QtCore import QSettings
+from PyQt4.QtCore import QSettings, pyqtSlot, SIGNAL
 
 # Sempy
 from Request import *
-from StoppableThread import *
+from Worker import *
 from Logger import *
 
 # Python STL
 import sys
+import time
 from queue import Queue
 import time
 from os.path import dirname
@@ -27,12 +28,6 @@ class Sempy(QSystemTrayIcon):
         self.settings = QSettings(QSettings.IniFormat, QSettings.UserScope, "Sempy",  "config")
         QSystemTrayIcon.__init__(self, QIcon("res/semaphore.png"), parent)
 
-        # kwargs = {'title': "Sempy",
-        #           'message': "body",
-        #           'app_name': "Sempy",
-        #           'app_icon':  join(dirname(realpath(__file__)), "res/semaphore.ico")}
-        #
-        # notification.notify(**kwargs)
         if os.path.exists(self.settings.fileName()) and self.settings.value("token"):
             self.current_info = {}
             self.last_info = {}
@@ -46,24 +41,20 @@ class Sempy(QSystemTrayIcon):
             self.menu = QMenu(parent)
             logging.debug("Starting RequestThread")
             self.create_menu()
-            time.sleep(15)
-            self.update_menu()
-            c = 0
-            while not self.message_queue.empty():
-                print("Item #%d: %s" % (c, self.message_queue.get()))
-                c += 1
-            sys.exit(0)
-            # self.req_thread = StoppableThread(self.interval, self.update_menu)
-            # self.req_thread.start()
+
+            self.req_thread = Worker(self.interval)
+            self.connect(self.req_thread, self.req_thread.signal, self.update_menu)
+            self.req_thread.start()
 
     def update_menu(self):
         self.req_counter += 1
         logging.debug("Request #%d" % self.req_counter)
         self.update_enabled_repos()
-        for i in self.menu.actions():
-            if not i.isSeparator() and i.text() != "Exit":
-                i.setText("Changed by update_menu")
-                i.setIcon(QIcon("res/failed.svg"))
+        for index, val in enumerate(self.menu.actions()):
+            if not val.isSeparator() and val.text() != "Exit":
+                last_item = self.last_info.popitem()
+                val.setText(last_item[0])
+                val.setIcon(QIcon("res/" + last_item[1]['result'] + ".svg"))
 
     def create_menu(self):
         for i in self.current_info.values():
@@ -108,13 +99,14 @@ class Sempy(QSystemTrayIcon):
             message = str("Build for %s is %s." % (repo, current_status))
             notification_dict = {'title': "Sempy",
                                  'message': message,
-                                 'app_name': "Sempy"}
+                                 'app_name': "Sempy",
+                                 'timeout': 3}
             if platform == "win":
-                notification_dict['app_icon'] = join(dirname(realpath(__file__)), "res/semaphore.ico")
+                notification_dict['app_icon'] = join(dirname(realpath(__file__)), "res/" + current_status + ".ico")
             else:
-                notification_dict['app_icon'] = join(dirname(realpath(__file__)), "res/semaphore.png")
+                notification_dict['app_icon'] = join(dirname(realpath(__file__)), "res/" + current_status + ".png")
             notification.notify(**notification_dict)
 
     def exit(self):
-        # self.req_thread.stop()
+        self.req_thread.quit()
         sys.exit(0)

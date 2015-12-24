@@ -19,10 +19,13 @@ def json_to_dict(data):
         for branch in server['branches']:
             values['branch_name'] = branch['branch_name']
 
-            if branch['result'] is "stopped":
-                values['result'] = "failed"
-            else:
-                values['result'] = branch['result']
+            try:
+                if branch['result'] is "stopped":
+                    values['result'] = "failed"
+                else:
+                    values['result'] = branch['result']
+            except KeyError:
+                values['result'] = "not built"
 
         key = str(server['owner'] + "/" + server['name'])
         info[key] = values
