@@ -1,18 +1,12 @@
-# PyQt
-from PyQt4.QtGui import *
-from PyQt4.QtCore import QSettings, pyqtSlot, SIGNAL
-
 # Sempy
-from Request import *
-from Worker import *
 from Logger import *
+from Request import *
 from Window import *
+from Worker import *
 
 # Python STL
 import sys
-import time
 from queue import Queue
-import time
 from os.path import dirname
 from os.path import join
 from os.path import realpath
@@ -26,6 +20,12 @@ class Sempy(QSystemTrayIcon):
     message_queue = Queue()
 
     def __init__(self, parent=None):
+        """
+        ctor for the main tray widget. Initialises all the values properly and configures initial state.
+        :param parent: Parent to create from
+        :return: Sempy object
+        """
+        self.config = SempyConfig()
         self.settings = QSettings(QSettings.IniFormat, QSettings.UserScope, "Sempy",  "config")
         QSystemTrayIcon.__init__(self, QIcon("res/semaphore.png"), parent)
 
@@ -37,44 +37,53 @@ class Sempy(QSystemTrayIcon):
             self.interval = int(self.settings.value("interval"))
             self.update_enabled_repos()
             self.req_counter = 0
-            self.logger = Logger(self.settings)
+            self.logger = Logger(os.path.dirname(self.settings.fileName()))
 
-            self.menu = QMenu(parent)
+            self.menu = self.create_menu(parent)
+            self.setContextMenu(self.menu)
+
             logging.debug("Starting RequestThread")
-            self.create_menu()
-
-            self.req_thread = Worker(self.interval)
-            self.connect(self.req_thread, self.req_thread.signal, self.update_menu)
+            self.req_thread = Worker(self.interval, self.update_enabled_repos)
+            self.req_thread.done_signal.connect(self.update_menu)
             self.req_thread.start()
 
     def update_menu(self):
+        """
+        Update the context menu upon a thread job concluding
+        :return: Nothing, just modifies global state
+        """
         self.req_counter += 1
         logging.debug("Request #%d" % self.req_counter)
-        self.update_enabled_repos()
         for index, val in enumerate(self.menu.actions()):
-            if not val.isSeparator() and val.text() != "Exit":
+            if not val.isSeparator() and val.text() != "Exit" and val.text() != "Config":
                 last_item = self.last_info.popitem()
                 val.setText(last_item[0])
                 val.setIcon(QIcon("res/" + last_item[1]['result'] + ".svg"))
 
-    def create_menu(self):
+    def create_menu(self, parent=None):
+        """
+        Create the initial context menu
+        :param parent: Parent widget
+        :return: A constructed menu
+        """
+        menu = QMenu(parent)
         for i in self.current_info.values():
             if self.enabled_repos.__contains__(str(i['owner'] + "/" + i['name'])):
                 if i['result'] == 'stopped':
                     file_str = "res/failed.svg"
                 else:
                     file_str = "res/" + i['result'] + ".svg"
-                self.menu.addAction(QIcon(file_str), i['owner'] + "/" + i['name'])
+                menu.addAction(QIcon(file_str), i['owner'] + "/" + i['name'])
 
-        self.menu.addSeparator()
-        config = SempyConfig()
-        exit_action = self.menu.addAction("Exit")
+        menu.addSeparator()
+        config_action = menu.addAction("Config")
+        config_action.triggered.connect(self.config.exec)
+        exit_action = menu.addAction("Exit")
         exit_action.triggered.connect(self.exit)
-        config_action = self.menu.addAction("Config")
-        config_action.triggered.connect(config.show())
-        self.setContextMenu(self.menu)
+        return menu
 
     def update_enabled_repos(self):
+        """ Update the list of enabled repos & their status. """
         if self.token is not None:
             self.last_info = self.current_info
             self.current_info = json_to_dict(json.loads(get_json(self.token)))
@@ -90,6 +99,10 @@ class Sempy(QSystemTrayIcon):
                 self.settings.remove(i)
 
     def do_notify(self, repo):
+        """
+        Handles notifications.
+        :param repo: Repo to generate a notification from
+        """
         last_status = None
         current_status = None
         for i in self.last_info.values():
@@ -98,18 +111,18 @@ class Sempy(QSystemTrayIcon):
         for i in self.current_info.values():
             current_status = i['result']
 
-        if last_status != current_status:
-            # if current_status == 'pending':
-            message = str("Build for %s is %s." % (repo, current_status))
-            notification_dict = {'title': "Sempy",
-                                 'message': message,
-                                 'app_name': "Sempy",
-                                 'timeout': 3}
-            if platform == "win":
-                notification_dict['app_icon'] = join(dirname(realpath(__file__)), "res/" + current_status + ".ico")
-            else:
-                notification_dict['app_icon'] = join(dirname(realpath(__file__)), "res/" + current_status + ".png")
-            notification.notify(**notification_dict)
+        if all(a is not None for a in [last_status, current_status]):
+            if last_status != current_status:
+                message = str("Build for %s %s." % (repo, current_status))
+                notification_dict = {'title': "Sempy",
+                                     'message': message,
+                                     'app_name': "Sempy",
+                                     'timeout': 3}
+                if platform == "win":
+                    notification_dict['app_icon'] = join(dirname(realpath(__file__)), "res/" + current_status + ".ico")
+                else:
+                    notification_dict['app_icon'] = join(dirname(realpath(__file__)), "res/" + current_status + ".png")
+                notification.notify(**notification_dict)
 
     def exit(self):
         self.req_thread.quit()

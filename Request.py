@@ -4,6 +4,13 @@ import requests
 
 
 def get_json(token, route=""):
+    """
+    Return a JSON dump of Semaphore projects
+    :param token: API token to access
+    :param route: API path
+    :return: Serialized JSON
+    :rtype: str
+    """
     r = requests.get('https://semaphoreapp.com/api/v1/projects' +
                      route + '?auth_token=' + token)
     if r.status_code is 200:
@@ -11,6 +18,14 @@ def get_json(token, route=""):
 
 
 def json_to_dict(data):
+    """
+    Convert serialized JSON to the custom structure I devised to handle everything. It's essentially a dictionary of
+    lists of all the servers and their statuses. As functionality grows, this will become more functional.
+
+    :param data: Data to parse
+    :return: Parsed dictionary
+    :rtype: dict
+    """
     info = {}
     for server in data:
         values = {}
