@@ -105,12 +105,12 @@ class FilterPage(QWizardPage):
 class FinalPage(QWizardPage):
     def __init__(self, parent=None):
         super(FinalPage, self).__init__(parent)
-        SempyWizard.settings.setValue("interval", 5)
         self.setTitle("Wizard complete")
         self.setSubTitle("Daemon will start running once you click finish. \n"
                          "Config is located in: " + SempyWizard.settings.fileName())
 
     def initializePage(self):
+        SempyWizard.settings.setValue("interval", 5)
         for i in FilterPage.box_group.buttons():
             SempyWizard.settings.beginGroup("Repositories")
             if i.isChecked() is True:
