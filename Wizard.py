@@ -67,7 +67,6 @@ class TokenPage(QWizardPage):
         token_label.setBuddy(self.token_input)
         self.registerField("tokenInput*", self.token_input)
         url_button = QPushButton("Get your token")
-        # Needed to stop Pycharm complaining
         # noinspection PyUnresolvedReferences
         url_button.clicked.connect(lambda s: webbrowser.open("https://semaphoreci.com/users/edit/"))
 

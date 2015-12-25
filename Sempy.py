@@ -35,15 +35,16 @@ class Sempy(QSystemTrayIcon):
             self.enabled_repos = []
             self.token = str(self.settings.value("token"))
             self.interval = int(self.settings.value("interval"))
-            self.update_enabled_repos()
-            self.req_counter = 0
             self.logger = Logger(os.path.dirname(self.settings.fileName()))
+            self.req_counter = 0
+
+            self.update_enabled_repos()
 
             self.menu = self.create_menu(parent)
             self.setContextMenu(self.menu)
 
             logging.debug("Starting RequestThread")
-            self.req_thread = Worker(self.interval, self.update_enabled_repos)
+            self.req_thread = Worker(interval=self.interval, function=self.update_enabled_repos)
             self.req_thread.done_signal.connect(self.update_menu)
             self.req_thread.start()
 
@@ -52,8 +53,6 @@ class Sempy(QSystemTrayIcon):
         Update the context menu upon a thread job concluding
         :return: Nothing, just modifies global state
         """
-        self.req_counter += 1
-        logging.debug("Request #%d" % self.req_counter)
         for index, val in enumerate(self.menu.actions()):
             if not val.isSeparator() and val.text() != "Exit" and val.text() != "Config":
                 last_item = self.last_info.popitem()
@@ -82,21 +81,33 @@ class Sempy(QSystemTrayIcon):
         exit_action.triggered.connect(self.exit)
         return menu
 
-    def update_enabled_repos(self):
-        """ Update the list of enabled repos & their status. """
+    def update_current_info(self):
+        """
+        Update the current JSON & swap current and last
+        :return: The updated JSON
+        """
+        self.req_counter += 1
+        logging.debug("Request #{}".format(self.req_counter))
         if self.token is not None:
             self.last_info = self.current_info
-            self.current_info = json_to_dict(json.loads(get_json(self.token)))
-            for i in self.current_info.values():
-                self.message_queue.put({str(i['owner'] + "/" + i['name']): i['result']})
-                self.do_notify(str(i['owner'] + "/" + i['name']))
+            return json_to_dict(json.loads(get_json(self.token)))
+
+    def update_enabled_repos(self):
+        """ Update the list of enabled repos & their status. """
+        self.current_info = self.update_current_info()
+        for i in self.current_info.values():
+            self.message_queue.put({str(i['owner'] + "/" + i['name']): i['result']})
+            self.do_notify(str(i['owner'] + "/" + i['name']))
         self.settings.beginGroup("Repositories")
         for i in self.settings.allKeys():
             if i in self.current_info:
                 if self.settings.value(i).capitalize() == "True":
+                    logging.debug("{} is enabled".format(i))
                     self.enabled_repos.append(i)
             else:
+                logging.debug("Removing {}, not found in current_info".format(i))
                 self.settings.remove(i)
+        self.settings.endGroup()
 
     def do_notify(self, repo):
         """
