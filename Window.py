@@ -2,6 +2,8 @@ from PyQt4.Qt import pyqtSlot
 from PyQt4.QtCore import QSettings, Qt
 from PyQt4.QtGui import *
 
+from Request import *
+
 
 # noinspection PyUnresolvedReferences
 class SempyConfig(QDialog):
@@ -17,7 +19,6 @@ class SempyConfig(QDialog):
 
         self.reload_button = QPushButton("Reload")
         self.save_button = QPushButton("Save")
-        self.refresh_button = QPushButton("Refresh")
         self.verify_button = QPushButton("Verify")
 
         self.box_layout = QGridLayout()
@@ -61,7 +62,6 @@ class SempyConfig(QDialog):
         self.save_button.clicked.connect(self.save)
         self.reload_button.clicked.connect(self.reload)
         self.verify_button.clicked.connect(self.verify)
-        self.refresh_button.clicked.connect(self.refresh)
         self.btn_layout.addWidget(self.save_button)
         self.btn_layout.addWidget(self.reload_button)
 
@@ -69,7 +69,6 @@ class SempyConfig(QDialog):
         self.settings_layout.addWidget(self.interval_spinner, 0, 1)
         self.settings_layout.addWidget(self.token_label, 1, 0)
         self.settings_layout.addWidget(self.token_box, 1, 1)
-        self.settings_layout.addWidget(self.refresh_button, 1, 2)
         self.settings_layout.addWidget(self.verify_button, 1, 3)
 
         self.main_layout.addItem(self.settings_layout, 0, 0)
@@ -89,18 +88,33 @@ class SempyConfig(QDialog):
 
     @pyqtSlot()
     def reload(self):
+        self.settings.sync()
         self.interval_spinner.setValue(int(self.settings.value("interval")))
         self.token_box.setText(self.settings.value("token"))
+        self.settings.beginGroup("Repositories")
         for i in self.box_group.buttons():
-            i.setCheckState(self.settings.value(i.text()))
+            if self.settings.value(i.text()) == "True":
+                i.setCheckState(Qt.Checked)
+            else:
+                i.setCheckState(Qt.Unchecked)
+        self.settings.endGroup()
 
     @pyqtSlot()
     def verify(self):
-        print("Verify")
-
-    @pyqtSlot()
-    def refresh(self):
-        print("refresh")
+        token = self.token_box.text()
+        try:
+            self.info = json_to_dict(json.loads(get_json(token)))
+        except (TypeError, ValueError):
+            QMessageBox.critical(QMessageBox(),
+                                 "Token invalid",
+                                 "Enter a valid token",
+                                 QMessageBox.Ok)
+        finally:
+            self.settings.beginGroup("Repositories")
+            for key, val in self.info.items():
+                self.settings.setValue(key, "True")
+            self.settings.endGroup()
+            self.reload()
 
     def closeEvent(self, event):
         event.ignore()
