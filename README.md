@@ -1,6 +1,12 @@
 # Sempy
 Lightweight tray icon status for Semaphore CI
 
+## Install
+
+Install PyQt4 from [here](https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyqt4)
+
+## Usage
+
 To use, just run `main.py` in a py3 interpreter. The wizard will guide you through acquiring a token.
 
 ## License
